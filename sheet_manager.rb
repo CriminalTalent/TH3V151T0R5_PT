@@ -2,21 +2,37 @@ require "google_drive"
 require "date"
 
 class SheetManager
-  USER_SHEET = "사용자"
-  STAT_SHEET = "스탯"
+  USER_SHEET     = "사용자"
+  STAT_SHEET     = "스탯"
   ACTIVITY_SHEET = "활동"
-  CAT_SHEET = "카피캣"
-  COLONY_SHEET = "군체"
-  LOG_SHEET = "로그"
+  CAT_SHEET      = "카피캣"
+  COLONY_SHEET   = "군체"
+  LOG_SHEET      = "로그"
+
+  # 사용자 시트 컬럼 (1-based, google_drive gem)
+  # A(1)=ID / B(2)=이름 / C(3)=크레딧 / D(4)=아이템 / E(5)=기숙사
+  # F(6)=마지막베팅일 / G(7)=오늘베팅횟수 / H(8)=마지막타로일
+  # I(9)=누적툿수 / J(10)=정산기준툿수 / K(11)=스탯포인트잔여
+  # L(12)=출석날짜 / M(13)=과제날짜
+
+  # 스탯 시트 컬럼 (1-based)
+  # A(1)=ID / B(2)=이름 / C(3)=HP / D(4)=마법능력 / E(5)=인내
+  # F(6)=속도 / G(7)=기술 / H(8)=행운
 
   STAT_COLUMNS = {
-    "건강" => 5,
-    "마법능력" => 6,
-    "내구도" => 7,
-    "민첩" => 8,
-    "기술" => 9,
-    "행운" => 10
-  }
+    "건강"    => 3,
+    "마법능력" => 4,
+    "인내"    => 5,
+    "속도"    => 6,
+    "기술"    => 7,
+    "행운"    => 8
+  }.freeze
+
+  # 활동 시트 컬럼 (1-based)
+  # A(1)=종류 / B(2)=활동명 / C(3)=요일 / D(4)=크레딧
+  # E(5)=관련스탯1 / F(6)=관련스탯2 / G(7)=난이도
+  # H(8)=성공스탯보상 / I(9)=대성공배율 / J(10)=성공배율
+  # K(11)=실패배율 / L(12)=대실패배율 / M(13)=출력문구
 
   def initialize
     session = GoogleDrive::Session.from_service_account_key(
@@ -41,11 +57,9 @@ class SheetManager
 
   def find_row(sheet_name, column_index, value)
     ws = worksheet(sheet_name)
-
     (2..ws.num_rows).each do |row|
       return row if ws[row, column_index].to_s.strip == value.to_s.strip
     end
-
     nil
   end
 
@@ -61,21 +75,28 @@ class SheetManager
     !!user_row(account)
   end
 
+  # ─────────────────────────────────────────────
+  # 등록
+  # ─────────────────────────────────────────────
   def register_user(account, name)
     return false if registered?(account)
 
-    ws = worksheet(USER_SHEET)
+    ws  = worksheet(USER_SHEET)
     row = ws.num_rows + 1
 
-    ws[row, 1] = account
-    ws[row, 2] = name
-    ws[row, 3] = ""
-    ws[row, 4] = "0"
-    ws[row, 5] = ""
-    ws[row, 6] = ""
-    ws[row, 7] = ""
-    ws[row, 8] = "0"
-    ws[row, 9] = ""
+    ws[row, 1]  = account  # ID
+    ws[row, 2]  = name     # 이름
+    ws[row, 3]  = "20"     # 크레딧 초기값
+    ws[row, 4]  = ""       # 아이템
+    ws[row, 5]  = ""       # 기숙사
+    ws[row, 6]  = ""       # 마지막베팅일
+    ws[row, 7]  = "0"      # 오늘베팅횟수
+    ws[row, 8]  = ""       # 마지막타로일
+    ws[row, 9]  = "0"      # 누적툿수
+    ws[row, 10] = "0"      # 정산기준툿수
+    ws[row, 11] = "10"     # 스탯포인트잔여 (신청 기간 10pt)
+    ws[row, 12] = ""       # 출석날짜
+    ws[row, 13] = ""       # 과제날짜
     ws.save
 
     create_default_stats(account, name)
@@ -85,42 +106,43 @@ class SheetManager
   end
 
   def create_default_stats(account, name)
-    ws = worksheet(STAT_SHEET)
+    ws  = worksheet(STAT_SHEET)
     row = ws.num_rows + 1
 
-    ws[row, 1] = account
-    ws[row, 2] = name
-    ws[row, 3] = "0"
-    ws[row, 4] = "0"
-    ws[row, 5] = "50"
-    ws[row, 6] = "10"
-    ws[row, 7] = "10"
-    ws[row, 8] = "0"
-    ws[row, 9] = "0"
-    ws[row, 10] = "0"
+    ws[row, 1] = account  # ID
+    ws[row, 2] = name     # 이름
+    ws[row, 3] = "50"     # HP (건강)
+    ws[row, 4] = "10"     # 마법능력
+    ws[row, 5] = "10"     # 인내
+    ws[row, 6] = "0"      # 속도
+    ws[row, 7] = "0"      # 기술
+    ws[row, 8] = "5"      # 행운
     ws.save
   end
 
   def create_default_cat(account, name)
-    ws = worksheet(CAT_SHEET)
+    ws  = worksheet(CAT_SHEET)
     row = ws.num_rows + 1
 
-    ws[row, 1] = account
-    ws[row, 2] = name
-    ws[row, 3] = "#{name}의 카피캣"
-    ws[row, 4] = "0"
-    ws[row, 5] = "0"
-    ws[row, 6] = "0"
-    ws[row, 7] = "0"
-    ws[row, 8] = "0"
-    ws[row, 9] = "0"
-    ws[row, 10] = "0"
-    ws[row, 11] = ""
+    ws[row, 1]  = account
+    ws[row, 2]  = name
+    ws[row, 3]  = "#{name}의 카피캣"
+    ws[row, 4]  = "0"   # 친밀도
+    ws[row, 5]  = "0"   # 허기
+    ws[row, 6]  = "0"   # 애정
+    ws[row, 7]  = "0"   # 공격성
+    ws[row, 8]  = "0"   # 안정
+    ws[row, 9]  = "0"   # 기묘함
+    ws[row, 10] = "0"   # ???
+    ws[row, 11] = ""    # 마지막먹이일
     ws[row, 12] = "새끼"
     ws[row, 13] = "아직 당신을 따라 하는 법을 배우는 중입니다."
     ws.save
   end
 
+  # ─────────────────────────────────────────────
+  # 사용자
+  # ─────────────────────────────────────────────
   def user_name(account)
     row = user_row(account)
     return nil unless row
@@ -130,25 +152,20 @@ class SheetManager
   def get_credit(account)
     row = user_row(account)
     return 0 unless row
-    worksheet(USER_SHEET)[row, 4].to_i
+    worksheet(USER_SHEET)[row, 3].to_i
   end
 
   def add_credit(account, amount)
     row = user_row(account)
     return unless row
-
     ws = worksheet(USER_SHEET)
-    ws[row, 4] = (ws[row, 4].to_i + amount.to_i).to_s
+    ws[row, 3] = (ws[row, 3].to_i + amount.to_i).to_s
     ws.save
   end
 
   def add_reputation(account, amount)
-    row = user_row(account)
-    return unless row
-
-    ws = worksheet(USER_SHEET)
-    ws[row, 8] = (ws[row, 8].to_i + amount.to_i).to_s
-    ws.save
+    # 현재 시트에 평판 컬럼 없음 — 기숙사 점수로 대체 예정이므로 로그만 기록
+    log(account, "평판", "+#{amount}")
   end
 
   def get_last_date(account, column)
@@ -160,92 +177,167 @@ class SheetManager
   def set_last_date(account, column, value = today)
     row = user_row(account)
     return unless row
-
     ws = worksheet(USER_SHEET)
     ws[row, column] = value
     ws.save
   end
 
+  def get_stat_points(account)
+    row = user_row(account)
+    return 0 unless row
+    worksheet(USER_SHEET)[row, 11].to_i
+  end
+
+  def set_stat_points(account, value)
+    row = user_row(account)
+    return unless row
+    ws = worksheet(USER_SHEET)
+    ws[row, 11] = value.to_s
+    ws.save
+  end
+
+  def get_bet_info(account)
+    row = user_row(account)
+    return { last_date: nil, count: 0 } unless row
+    ws = worksheet(USER_SHEET)
+    { last_date: ws[row, 6].to_s, count: ws[row, 7].to_i }
+  end
+
+  def set_bet_info(account, date:, count:)
+    row = user_row(account)
+    return unless row
+    ws = worksheet(USER_SHEET)
+    ws[row, 6] = date
+    ws[row, 7] = count.to_s
+    ws.save
+  end
+
+  def get_tarot_date(account)
+    row = user_row(account)
+    return nil unless row
+    worksheet(USER_SHEET)[row, 8].to_s
+  end
+
+  def set_tarot_date(account, date = today)
+    row = user_row(account)
+    return unless row
+    ws = worksheet(USER_SHEET)
+    ws[row, 8] = date
+    ws.save
+  end
+
+  def get_items(account)
+    row = user_row(account)
+    return [] unless row
+    worksheet(USER_SHEET)[row, 4].to_s.split(",").map(&:strip).reject(&:empty?)
+  end
+
+  def set_items(account, items_array)
+    row = user_row(account)
+    return unless row
+    ws = worksheet(USER_SHEET)
+    ws[row, 4] = items_array.join(",")
+    ws.save
+  end
+
+  def get_house(account)
+    row = user_row(account)
+    return nil unless row
+    worksheet(USER_SHEET)[row, 5].to_s.strip
+  end
+
+  # ─────────────────────────────────────────────
+  # 스탯
+  # ─────────────────────────────────────────────
   def stats(account)
     row = find_row(STAT_SHEET, 1, account)
     return {} unless row
-
     ws = worksheet(STAT_SHEET)
-
     {
-      "건강" => ws[row, 5].to_i,
-      "마법능력" => ws[row, 6].to_i,
-      "내구도" => ws[row, 7].to_i,
-      "민첩" => ws[row, 8].to_i,
-      "기술" => ws[row, 9].to_i,
-      "행운" => ws[row, 10].to_i
+      "건강"    => ws[row, 3].to_i,
+      "마법능력" => ws[row, 4].to_i,
+      "인내"    => ws[row, 5].to_i,
+      "속도"    => ws[row, 6].to_i,
+      "기술"    => ws[row, 7].to_i,
+      "행운"    => ws[row, 8].to_i
     }
   end
 
   def add_stat(account, stat_name, amount)
     return if amount.to_i == 0
-
-    row = find_row(STAT_SHEET, 1, account)
-    return unless row
-
     col = STAT_COLUMNS[stat_name]
     return unless col
-
+    row = find_row(STAT_SHEET, 1, account)
+    return unless row
     ws = worksheet(STAT_SHEET)
     ws[row, col] = (ws[row, col].to_i + amount.to_i).to_s
     ws.save
   end
 
+  def set_stat(account, stat_name, value)
+    col = STAT_COLUMNS[stat_name]
+    return unless col
+    row = find_row(STAT_SHEET, 1, account)
+    return unless row
+    ws = worksheet(STAT_SHEET)
+    ws[row, col] = value.to_s
+    ws.save
+  end
+
+  # ─────────────────────────────────────────────
+  # 활동
+  # 시트 컬럼: A=종류, B=활동명, C=요일, D=크레딧,
+  #            E=관련스탯1, F=관련스탯2, G=난이도,
+  #            H=성공스탯보상, I=대성공배율, J=성공배율,
+  #            K=실패배율, L=대실패배율, M=출력문구
+  # ─────────────────────────────────────────────
   def find_activity(kind, name)
     ws = worksheet(ACTIVITY_SHEET)
-
     (2..ws.num_rows).each do |row|
       next unless ws[row, 1].to_s.strip == kind
       next unless normalize(ws[row, 2]) == normalize(name)
 
       return {
-        row: row,
-        kind: ws[row, 1],
-        name: ws[row, 2],
-        days: ws[row, 3],
-        base_credit: ws[row, 4].to_i,
-        stat1: ws[row, 5],
-        stat2: ws[row, 6],
-        difficulty: ws[row, 7].to_i,
-        health: ws[row, 8].to_i,
-        magic: ws[row, 9].to_i,
-        durability: ws[row, 10].to_i,
-        agility: ws[row, 11].to_i,
-        technique: ws[row, 12].to_i,
-        luck: ws[row, 13].to_i,
-        reputation: ws[row, 14].to_i,
-        message: ws[row, 15].to_s
+        row:             row,
+        kind:            ws[row, 1].to_s,
+        name:            ws[row, 2].to_s,
+        days:            ws[row, 3].to_s,
+        base_credit:     ws[row, 4].to_i,
+        stat1:           ws[row, 5].to_s.strip,
+        stat2:           ws[row, 6].to_s.strip,
+        difficulty:      ws[row, 7].to_i,
+        stat_reward:     ws[row, 8].to_s.strip,   # 예: "평판+1"
+        great_success_m: parse_float(ws[row, 9],  1.5),
+        success_m:       parse_float(ws[row, 10], 1.0),
+        failure_m:       parse_float(ws[row, 11], 0.5),
+        great_failure_m: parse_float(ws[row, 12], 0.3),
+        message:         ws[row, 13].to_s.strip
       }
     end
-
     nil
   end
 
+  # ─────────────────────────────────────────────
+  # 카피캣
+  # ─────────────────────────────────────────────
   def cat(account)
     row = cat_row(account)
     return nil unless row
-
     ws = worksheet(CAT_SHEET)
-
     {
-      row: row,
-      account: ws[row, 1],
-      character: ws[row, 2],
-      name: ws[row, 3],
-      intimacy: ws[row, 4].to_i,
-      hunger: ws[row, 5].to_i,
-      affection: ws[row, 6].to_i,
-      aggression: ws[row, 7].to_i,
-      stability: ws[row, 8].to_i,
-      weirdness: ws[row, 9].to_i,
-      unknown: ws[row, 10].to_i,
-      last_feed: ws[row, 11].to_s,
-      stage: ws[row, 12].to_s,
+      row:           row,
+      account:       ws[row, 1].to_s,
+      character:     ws[row, 2].to_s,
+      name:          ws[row, 3].to_s,
+      intimacy:      ws[row, 4].to_i,
+      hunger:        ws[row, 5].to_i,
+      affection:     ws[row, 6].to_i,
+      aggression:    ws[row, 7].to_i,
+      stability:     ws[row, 8].to_i,
+      weirdness:     ws[row, 9].to_i,
+      unknown:       ws[row, 10].to_i,
+      last_feed:     ws[row, 11].to_s,
+      stage:         ws[row, 12].to_s,
       last_reaction: ws[row, 13].to_s
     }
   end
@@ -253,7 +345,6 @@ class SheetManager
   def set_cat_name(account, cat_name)
     row = cat_row(account)
     return unless row
-
     ws = worksheet(CAT_SHEET)
     ws[row, 3] = cat_name
     ws.save
@@ -262,26 +353,24 @@ class SheetManager
   def update_cat(account, changes)
     row = cat_row(account)
     return unless row
-
     ws = worksheet(CAT_SHEET)
 
     column_map = {
-      intimacy: 4,
-      hunger: 5,
-      affection: 6,
-      aggression: 7,
-      stability: 8,
-      weirdness: 9,
-      unknown: 10,
-      last_feed: 11,
-      stage: 12,
+      intimacy:      4,
+      hunger:        5,
+      affection:     6,
+      aggression:    7,
+      stability:     8,
+      weirdness:     9,
+      unknown:       10,
+      last_feed:     11,
+      stage:         12,
       last_reaction: 13
     }
 
     changes.each do |key, value|
       col = column_map[key]
       next unless col
-
       if [:last_feed, :stage, :last_reaction].include?(key)
         ws[row, col] = value.to_s
       else
@@ -289,39 +378,31 @@ class SheetManager
         ws[row, col] = [new_value, 0].max.to_s
       end
     end
-
     ws.save
   end
 
+  # ─────────────────────────────────────────────
+  # 군체
+  # ─────────────────────────────────────────────
   def update_colony(stat_key, amount)
-    ws = worksheet(COLONY_SHEET)
-
-    col = {
-      affection: 1,
-      aggression: 2,
-      stability: 3,
-      weirdness: 4,
-      unknown: 5
-    }[stat_key]
-
+    ws  = worksheet(COLONY_SHEET)
+    col = { affection: 1, aggression: 2, stability: 3, weirdness: 4, unknown: 5 }[stat_key]
     return unless col
-
     ws[2, col] = (ws[2, col].to_i + amount.to_i).to_s
     ws.save
   end
 
   def colony
     ws = worksheet(COLONY_SHEET)
-
     {
-      affection: ws[2, 1].to_i,
+      affection:  ws[2, 1].to_i,
       aggression: ws[2, 2].to_i,
-      stability: ws[2, 3].to_i,
-      weirdness: ws[2, 4].to_i,
-      unknown: ws[2, 5].to_i,
-      current: ws[2, 6].to_s,
-      stage: ws[2, 7].to_s,
-      message: ws[2, 8].to_s
+      stability:  ws[2, 3].to_i,
+      weirdness:  ws[2, 4].to_i,
+      unknown:    ws[2, 5].to_i,
+      current:    ws[2, 6].to_s,
+      stage:      ws[2, 7].to_s,
+      message:    ws[2, 8].to_s
     }
   end
 
@@ -333,10 +414,12 @@ class SheetManager
     ws.save
   end
 
+  # ─────────────────────────────────────────────
+  # 로그
+  # ─────────────────────────────────────────────
   def log(account, command, result)
-    ws = worksheet(LOG_SHEET)
+    ws  = worksheet(LOG_SHEET)
     row = ws.num_rows + 1
-
     ws[row, 1] = now_string
     ws[row, 2] = account
     ws[row, 3] = command
@@ -350,5 +433,10 @@ class SheetManager
 
   def normalize(text)
     text.to_s.gsub(/\s+/, "").strip
+  end
+
+  def parse_float(value, default)
+    v = value.to_s.strip
+    v.empty? ? default : v.to_f
   end
 end
