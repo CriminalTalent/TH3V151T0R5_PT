@@ -1,5 +1,5 @@
 class AttendanceCommand
-  LAST_ATTENDANCE_COL = 5
+  LAST_ATTENDANCE_COL = 12  # L열
 
   def initialize(sheet)
     @sheet = sheet
