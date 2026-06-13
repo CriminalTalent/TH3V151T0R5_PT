@@ -76,7 +76,7 @@ class SheetManager
     ws[row, 6] = ""
     ws[row, 7] = ""
     ws[row, 8] = "0"
-    ws[row, 9] = "0"
+    ws[row, 9] = ""
     ws.save
 
     create_default_stats(account, name)
@@ -254,6 +254,15 @@ class SheetManager
     }
   end
 
+  def set_cat_name(account, cat_name)
+    row = cat_row(account)
+    return unless row
+
+    ws = worksheet(CAT_SHEET)
+    ws[row, 3] = cat_name
+    ws.save
+  end
+
   def update_cat(account, changes)
     row = cat_row(account)
     return unless row
@@ -280,7 +289,8 @@ class SheetManager
       if [:last_feed, :stage, :last_reaction].include?(key)
         ws[row, col] = value.to_s
       else
-        ws[row, col] = (ws[row, col].to_i + value.to_i).to_s
+        new_value = ws[row, col].to_i + value.to_i
+        ws[row, col] = [new_value, 0].max.to_s
       end
     end
 
