@@ -1,3 +1,6 @@
+# commands/enroll_command.rb
+require 'date'
+
 class RegisterCommand
   def initialize(sheet)
     @sheet = sheet
