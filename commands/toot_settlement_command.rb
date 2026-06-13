@@ -1,4 +1,6 @@
 class TootSettlementCommand
+  CREDIT_PER_100_TOOTS = 5
+
   def initialize(sheet)
     @sheet = sheet
   end
@@ -10,11 +12,12 @@ class TootSettlementCommand
   def execute(content:, account:, status_id:)
     return "먼저 `[등록/캐릭터명]`을 해주세요." unless @sheet.registered?(account)
 
-    count = content.match(/\[툿정산\/(\d+)\]/)[1].to_i
-    reward = (count / 100) * 5
+    count  = content.match(/\[툿정산\/(\d+)\]/)[1].to_i
+    units  = count / 100
+    reward = units * CREDIT_PER_100_TOOTS
 
     if reward <= 0
-      return "정산 가능한 툿 수가 부족합니다. 100툿당 5크레딧입니다."
+      return "정산 가능한 툿 수가 부족합니다. 100툿당 #{CREDIT_PER_100_TOOTS}크레딧입니다."
     end
 
     @sheet.add_credit(account, reward)
