@@ -28,7 +28,6 @@ class SheetManager
   def worksheet(name)
     ws = @spreadsheet.worksheet_by_title(name)
     raise "시트 탭을 찾을 수 없습니다: #{name}" unless ws
-
     ws
   end
 
@@ -125,14 +124,12 @@ class SheetManager
   def user_name(account)
     row = user_row(account)
     return nil unless row
-
     worksheet(USER_SHEET)[row, 2]
   end
 
   def get_credit(account)
     row = user_row(account)
     return 0 unless row
-
     worksheet(USER_SHEET)[row, 4].to_i
   end
 
@@ -157,7 +154,6 @@ class SheetManager
   def get_last_date(account, column)
     row = user_row(account)
     return nil unless row
-
     worksheet(USER_SHEET)[row, column].to_s
   end
 
