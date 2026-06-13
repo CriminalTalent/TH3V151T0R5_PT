@@ -7,8 +7,11 @@ class Main
   LAST_ID_FILE = "last_mention_id.txt"
 
   def initialize
-    @mastodon = MastodonClient.new
-    @sheet = SheetManager.new
+    @mastodon = MastodonClient.new(
+      base_url: ENV.fetch("MASTODON_BASE_URL"),
+      token:    ENV.fetch("MASTODON_ACCESS_TOKEN")
+    )
+    @sheet  = SheetManager.new
     @parser = CommandParser.new(@sheet)
   end
 
@@ -30,32 +33,38 @@ class Main
   private
 
   def process_mentions
-    last_id = read_last_id
+    last_id  = read_last_id
     mentions = @mastodon.mentions(since_id: last_id)
 
     return if mentions.empty?
 
     mentions.reverse_each do |mention|
-      content = @mastodon.clean_content(mention)
-      account = mention.account.acct
-      status_id = mention.status.id.to_s
+      content   = @mastodon.clean_content(mention)
+      account   = mention.dig("account", "acct") || mention.dig(:account, :acct)
+      status_id = (mention.dig("status", "id") || mention.dig(:status, :id)).to_s
 
       puts "[MENTION] #{account}: #{content}"
 
       response = @parser.call(
-        content: content,
-        account: account,
+        content:   content,
+        account:   account,
         status_id: status_id
       )
 
-      @mastodon.reply(status_id, "@#{account} #{response}") if response
-      write_last_id(mention.id)
+      if response
+        @mastodon.post_status(
+          "@#{account} #{response}",
+          reply_to_id: status_id,
+          visibility:  "unlisted"
+        )
+      end
+
+      write_last_id(mention["id"] || mention[:id])
     end
   end
 
   def read_last_id
     return nil unless File.exist?(LAST_ID_FILE)
-
     File.read(LAST_ID_FILE).strip
   end
 
