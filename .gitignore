@@ -1,0 +1,5 @@
+.env
+credentials.json
+last_mention_id.txt
+*.bak
+path

@@ -40,8 +40,8 @@ class Main
 
     mentions.reverse_each do |mention|
       content   = @mastodon.clean_content(mention)
-      account   = mention.dig("account", "acct") || mention.dig(:account, :acct)
-      status_id = (mention.dig("status", "id") || mention.dig(:status, :id)).to_s
+      account   = mention.dig("account", "acct")
+      status_id = mention.dig("status", "id").to_s
 
       puts "[MENTION] #{account}: #{content}"
 
@@ -52,14 +52,16 @@ class Main
       )
 
       if response
+        visibility = content.match?(/\[툿정산\/\d+\]/) ? "direct" : "unlisted"
+
         @mastodon.post_status(
           "@#{account} #{response}",
           reply_to_id: status_id,
-          visibility:  "unlisted"
+          visibility:  visibility
         )
       end
 
-      write_last_id(mention["id"] || mention[:id])
+      write_last_id(mention["id"])
     end
   end
 

@@ -5,10 +5,15 @@ class ActivityCommand
   include DateHelper
   include ResultJudge
 
-  # 사용자 시트 컬럼 (마지막 활동일)
-  LAST_CLASS_COL = 12  # L열 = 출석날짜 겸용 (수업)
-  LAST_JOB_COL   = 12  # 아르바이트/클럽은 별도 컬럼 없으므로 같은 열 사용
-  # ※ 수업/아르바이트/클럽을 각각 별도로 제한하려면 시트에 컬럼 추가 필요
+  STAT_COLUMN_NAMES = %w[건강 마법능력 인내 속도 기술 행운].freeze
+
+  CAT_STAT_MAP = {
+    "애정"   => :affection,
+    "공격성" => :aggression,
+    "안정"   => :stability,
+    "기묘함" => :weirdness,
+    "???"    => :unknown
+  }.freeze
 
   def initialize(sheet)
     @sheet = sheet
@@ -25,9 +30,7 @@ class ActivityCommand
     kind  = match[1]
     name  = match[2].strip
 
-    limit_col = limit_column(kind)
-
-    if @sheet.get_last_date(account, limit_col) == @sheet.today
+    if @sheet.get_activity_last_date(account, kind) == @sheet.today
       return "#{kind} 활동은 오늘 이미 처리되었습니다."
     end
 
@@ -40,7 +43,6 @@ class ActivityCommand
 
     current_stats = @sheet.stats(account)
 
-    # 성공률 계산: 50 + 관련스탯 합계×2 + 행운×1 - 난이도
     s1   = current_stats[activity[:stat1]].to_i
     s2   = current_stats[activity[:stat2]].to_i
     luck = current_stats["행운"].to_i
@@ -53,7 +55,6 @@ class ActivityCommand
 
     result, roll = judge(rate)
 
-    # 배율은 시트에서 읽음
     multiplier = case result
                  when :great_success then activity[:great_success_m]
                  when :success       then activity[:success_m]
@@ -64,8 +65,11 @@ class ActivityCommand
 
     credit = (activity[:base_credit] * multiplier).floor
 
+    # 스탯 보상 적용 (성공/대성공 시만, "건강+5,기술+2" 형식 파싱)
+    stat_gains = apply_stat_rewards(account, activity[:stat_reward], multiplier, result)
+
     @sheet.add_credit(account, credit)
-    @sheet.set_last_date(account, limit_col)
+    @sheet.set_activity_last_date(account, kind)
 
     label = result_label(result)
 
@@ -74,6 +78,10 @@ class ActivityCommand
 
     message = activity[:message].empty? ? "활동을 마쳤습니다." : activity[:message]
 
+    stat_text = stat_gains.empty? ? "" : "\n#{stat_gains.join(' / ')}"
+
+    event_text = check_events(account)
+
     <<~TEXT.strip
       #{message}
 
@@ -81,18 +89,68 @@ class ActivityCommand
       성공률: #{rate}%
       주사위: #{roll}
 
-      크레딧 +#{credit}
+      크레딧 +#{credit}#{stat_text}#{event_text}
     TEXT
   end
 
   private
 
-  def limit_column(kind)
-    case kind
-    when "수업"      then 12   # L열
-    when "아르바이트" then 12   # 별도 컬럼 없으면 같은 열
-    when "클럽"      then 12
-    else 12
+  # "건강+5,기술+2" 형식 파싱 후 적용. 결과/배율에 따라 반영하고
+  # 오른 스탯명+수치만 배열로 반환 (예: ["건강 +5", "기술 +2"])
+  def apply_stat_rewards(account, reward_text, multiplier, result)
+    return [] if reward_text.to_s.strip.empty?
+    return [] if [:failure, :great_failure].include?(result)
+
+    gains = []
+
+    reward_text.split(",").each do |part|
+      part = part.strip
+      next if part.empty?
+
+      m = part.match(/(.+?)([+\-]\d+)/)
+      next unless m
+
+      stat_name = m[1].strip
+      amount    = m[2].to_i
+      next unless STAT_COLUMN_NAMES.include?(stat_name)
+
+      applied = (amount * multiplier).round
+      next if applied == 0
+
+      @sheet.add_stat(account, stat_name, applied)
+      sign = applied > 0 ? "+" : ""
+      gains << "#{stat_name} #{sign}#{applied}"
     end
+
+    gains
+  end
+
+  # 활동 성공 후 이벤트 조건 체크. 조건 만족하면 카피캣 스탯 변경 +
+  # 메시지 출력. 1회한정이면 발동기록 남김.
+  def check_events(account)
+    stats = @sheet.stats(account)
+    triggered = @sheet.triggered_events(account)
+    messages = []
+
+    @sheet.all_events.each do |event|
+      next if event[:once_only] && triggered.include?(event[:name])
+
+      all_met = event[:conditions].all? do |stat_name, threshold|
+        stats[stat_name].to_i >= threshold.to_i
+      end
+
+      next unless all_met
+
+      if event[:cat_stat] && CAT_STAT_MAP[event[:cat_stat]]
+        cat_key = CAT_STAT_MAP[event[:cat_stat]]
+        @sheet.update_cat(account, cat_key => event[:cat_value])
+      end
+
+      messages << event[:message]
+
+      @sheet.add_triggered_event(account, event[:name]) if event[:once_only]
+    end
+
+    messages.empty? ? "" : "\n\n" + messages.join("\n")
   end
 end

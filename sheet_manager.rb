@@ -343,9 +343,30 @@ class SheetManager
   end
 
   def set_cat_name(account, cat_name)
-    row = cat_row(account)
-    return unless row
     ws = worksheet(CAT_SHEET)
+    row = cat_row(account)
+
+    unless row
+      row = ws.num_rows + 1
+      character_name = user_name(account) || account
+
+      ws[row, 1]  = account
+      ws[row, 2]  = character_name
+      ws[row, 3]  = cat_name
+      ws[row, 4]  = "0"   # 친밀도
+      ws[row, 5]  = "0"   # 허기
+      ws[row, 6]  = "0"   # 애정
+      ws[row, 7]  = "0"   # 공격성
+      ws[row, 8]  = "0"   # 안정
+      ws[row, 9]  = "0"   # 기묘함
+      ws[row, 10] = "0"   # ???
+      ws[row, 11] = ""    # 마지막먹이일
+      ws[row, 12] = "새끼"
+      ws[row, 13] = "아직 당신을 따라 하는 법을 배우는 중입니다."
+      ws.save
+      return
+    end
+
     ws[row, 3] = cat_name
     ws.save
   end
@@ -429,6 +450,83 @@ class SheetManager
     nil
   end
 
+
+  # ─────────────────────────────────────────────
+  # 활동별 마지막 날짜 (N=수업, O=아르바이트, P=클럽)
+  # ─────────────────────────────────────────────
+  ACTIVITY_DATE_COLUMNS = {
+    "수업"      => 14,  # N
+    "아르바이트" => 15,  # O
+    "클럽"      => 16   # P
+  }.freeze
+
+  def get_activity_last_date(account, kind)
+    col = ACTIVITY_DATE_COLUMNS[kind]
+    return nil unless col
+    row = user_row(account)
+    return nil unless row
+    worksheet(USER_SHEET)[row, col].to_s
+  end
+
+  def set_activity_last_date(account, kind, value = today)
+    col = ACTIVITY_DATE_COLUMNS[kind]
+    return unless col
+    row = user_row(account)
+    return unless row
+    ws = worksheet(USER_SHEET)
+    ws[row, col] = value
+    ws.save
+  end
+
+  # ─────────────────────────────────────────────
+  # 발동한 이벤트 목록 (Q열, 콤마구분)
+  # ─────────────────────────────────────────────
+  def triggered_events(account)
+    row = user_row(account)
+    return [] unless row
+    worksheet(USER_SHEET)[row, 17].to_s.split(",").map(&:strip).reject(&:empty?)
+  end
+
+  def add_triggered_event(account, event_name)
+    row = user_row(account)
+    return unless row
+    ws = worksheet(USER_SHEET)
+    current = ws[row, 17].to_s.split(",").map(&:strip).reject(&:empty?)
+    return if current.include?(event_name)
+    current << event_name
+    ws[row, 17] = current.join(",")
+    ws.save
+  end
+
+  # ─────────────────────────────────────────────
+  # 이벤트 시트
+  # 컬럼: A=조건1스탯 B=조건1값 C=조건2스탯 D=조건2값 E=조건3스탯 F=조건3값
+  #       G=카피캣영향스탯 H=카피캣영향값 I=메시지 J=1회한정여부
+  # ─────────────────────────────────────────────
+  EVENT_SHEET = "이벤트"
+
+  def all_events
+    ws = worksheet(EVENT_SHEET)
+    events = []
+    (2..ws.num_rows).each do |row|
+      msg = ws[row, 9].to_s.strip
+      next if msg.empty?
+      events << {
+        row:        row,
+        conditions: [
+          [ws[row, 1].to_s.strip, ws[row, 2].to_s.strip],
+          [ws[row, 3].to_s.strip, ws[row, 4].to_s.strip],
+          [ws[row, 5].to_s.strip, ws[row, 6].to_s.strip]
+        ].reject { |stat, _| stat.empty? },
+        cat_stat:   ws[row, 7].to_s.strip,
+        cat_value:  ws[row, 8].to_i,
+        message:    msg,
+        once_only:  ws[row, 10].to_s.strip.upcase == "TRUE",
+        name:       "이벤트#{row}"
+      }
+    end
+    events
+  end
   private
 
   def normalize(text)
@@ -438,5 +536,32 @@ class SheetManager
   def parse_float(value, default)
     v = value.to_s.strip
     v.empty? ? default : v.to_f
+  end
+end
+
+class SheetManager
+  TOOT_TOTAL_COL = 18
+  TOOT_BASE_COL  = 19
+
+  def get_toot_base(account)
+    row = user_row(account)
+    return 0 unless row
+    worksheet(USER_SHEET)[row, TOOT_BASE_COL].to_i
+  end
+
+  def set_toot_base(account, count)
+    row = user_row(account)
+    return unless row
+    ws = worksheet(USER_SHEET)
+    ws[row, TOOT_BASE_COL] = count.to_i
+    ws.save
+  end
+
+  def set_toot_total(account, count)
+    row = user_row(account)
+    return unless row
+    ws = worksheet(USER_SHEET)
+    ws[row, TOOT_TOTAL_COL] = count.to_i
+    ws.save
   end
 end
