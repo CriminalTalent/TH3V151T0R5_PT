@@ -1,6 +1,7 @@
-source "https://rubygems.org"
+source 'https://rubygems.org'
 
-gem "mastodon-api", "2.0.0"
-gem "google_drive"
-gem "dotenv"
-gem "activesupport"
+gem 'dotenv'
+gem 'google_drive', '3.0.7'
+gem 'googleauth', '0.17.1'
+gem 'faraday', '1.10.5'
+gem 'faraday-httpclient', '1.0.1'

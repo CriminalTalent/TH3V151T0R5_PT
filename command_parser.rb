@@ -9,6 +9,7 @@ require_relative "./commands/observe_cat_command"
 require_relative "./commands/colony_command"
 require_relative "./commands/progress_command"
 require_relative "./commands/toot_settlement_command"
+require_relative "./commands/house_score_command"
 
 class CommandParser
   def initialize(sheet)
@@ -23,14 +24,16 @@ class CommandParser
       ObserveCatCommand.new(sheet),
       ColonyCommand.new(sheet),
       ProgressCommand.new(sheet),
-      TootSettlementCommand.new(sheet)
+      TootSettlementCommand.new(sheet),
+      HouseScoreCommand.new(sheet)
     ]
   end
 
   def call(content:, account:, status_id:)
     command = @commands.find { |cmd| cmd.match?(content) }
 
-    return "흠. 그런 명령어는 아직 배우지 못했습니다." unless command
+    # 인식되는 명령어가 없으면 응답하지 않는다. (일상 멘션 무시)
+    return nil unless command
 
     command.execute(content: content, account: account, status_id: status_id)
   rescue => e

@@ -8,6 +8,8 @@ class ColonyCommand
   end
 
   def execute(content:, account:, status_id:)
+    return ranking_text if content.include?("[카피캣랭킹]")
+
     colony = @sheet.colony
     current = decide_colony(colony)
     stage = decide_stage(colony)
@@ -37,6 +39,59 @@ class ColonyCommand
   end
 
   private
+
+  TRAIT_NAMES = {
+    affection:  "애정",
+    aggression: "공격성",
+    stability:  "안정",
+    weirdness:  "기묘함",
+    unknown:    "???"
+  }.freeze
+
+  def ranking_text
+    ws = @sheet.worksheet("카피캣")
+    cats = []
+
+    (2..ws.num_rows).each do |row|
+      character = ws[row, 2].to_s.strip
+      cat_name  = ws[row, 3].to_s.strip
+      next if character.empty? && cat_name.empty?
+
+      traits = {
+        affection:  ws[row, 6].to_i,
+        aggression: ws[row, 7].to_i,
+        stability:  ws[row, 8].to_i,
+        weirdness:  ws[row, 9].to_i,
+        unknown:    ws[row, 10].to_i
+      }
+
+      total = traits.values.sum
+      dominant_key = traits.max_by { |_k, v| v }[0]
+      dominant = traits.values.all?(&:zero?) ? "없음" : TRAIT_NAMES[dominant_key]
+
+      cats << {
+        character: character,
+        cat_name:  cat_name,
+        total:     total,
+        dominant:  dominant
+      }
+    end
+
+    return "아직 등록된 카피캣이 없습니다." if cats.empty?
+
+    cats.sort_by! { |c| -c[:total] }
+
+    lines = []
+    lines << "카피캣 랭킹입니다."
+    lines << "──────────────────"
+    cats.each_with_index do |c, i|
+      lines << "#{i + 1}위. #{c[:cat_name]} (#{c[:character]})"
+      lines << "   성향 총합 #{c[:total]} / 우세 성향: #{c[:dominant]}"
+    end
+    lines << "──────────────────"
+
+    lines.join("\n")
+  end
 
   def decide_colony(colony)
     values = {
