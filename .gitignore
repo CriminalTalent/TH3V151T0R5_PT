@@ -3,3 +3,14 @@ credentials.json
 last_mention_id.txt
 *.bak
 path
+
+# Local backup and temporary files
+*.bak
+*.bak.*
+*.bak[0-9]*
+*.backup
+*.broken
+*.shell_bak
+*_broken
+*_broken_*
+*_error_*.backup

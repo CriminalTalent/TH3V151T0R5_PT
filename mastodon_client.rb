@@ -73,29 +73,50 @@ class MastodonClient
     []
   end
 
-  def post_status(text, reply_to_id: nil, visibility: "unlisted")
-    chunks = split_text(safe_utf8(text))
-    last_res = nil
-    current_reply_id = reply_to_id
+    def post_status(text, reply_to_id: nil, visibility: "unlisted")
+      chunks = split_text(safe_utf8(text))
+      current_reply_id = reply_to_id
+      last_res = nil
 
-    chunks.each do |chunk|
-      form = { status: chunk, visibility: visibility }
-      form[:in_reply_to_id] = current_reply_id if current_reply_id
+      chunks.each do |chunk|
+        form = {
+          status: chunk,
+          visibility: visibility
+        }
 
-      res, body = request(method: :post, path: "/api/v1/statuses", form: form)
+        form[:in_reply_to_id] = current_reply_id if current_reply_id
 
-      if body.is_a?(Hash) && body['id']
-        current_reply_id = body['id']
+        res, body = request(
+          method: :post,
+          path: "/api/v1/statuses",
+          form: form
+        )
+
+        puts "=============================="
+        puts "POST STATUS"
+        puts "reply_to_id=#{current_reply_id}"
+        puts "status=#{res&.code}"
+        p body
+        puts "=============================="
+
+        unless res && res.code.to_i.between?(200, 299)
+          puts "[POST FAILED]"
+          return false
+        end
+
+        current_reply_id =
+          body["id"] if body.is_a?(Hash) && body["id"]
+
+        last_res = res
+        sleep 1 if chunks.size > 1
       end
 
-      last_res = res
-      sleep 1 if chunks.size > 1
+      last_res
+    rescue => e
+      puts "[post_status 오류] #{e.class}: #{e.message}"
+      puts e.backtrace.first(10)
+      false
     end
-
-    last_res
-  rescue => e
-    puts "[post_status 오류] #{e.message}"
-  end
 
   def clean_content(notification)
     html = notification["status"]["content"]

@@ -12,7 +12,8 @@ require_relative "./commands/toot_settlement_command"
 require_relative "./commands/house_score_command"
 
 class CommandParser
-  def initialize(sheet)
+  def initialize(sheet, shop_sheet_manager)
+    @shop_sheet_manager = shop_sheet_manager
     @commands = [
       RegisterCommand.new(sheet),
       StatusCommand.new(sheet),
