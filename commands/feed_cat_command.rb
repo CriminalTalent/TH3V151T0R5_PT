@@ -57,7 +57,7 @@ class FeedCatCommand
       stat: :aggression,
       colony: :aggression,
       success: [
-        "%{cat}%{은는} 고기를 물고 낮게 웁니다. 어쩐지 사냥법을 배운 것 같습니다.",
+        "%{cat}%{은는} 고기를 물고 낮게 웁니다. 어쩌면 사냥법을 배운 것 같습니다.",
         "%{cat}%{이가} 고기를 씹는 소리가 유난히 또렷합니다.",
         "%{cat}%{은는} 고기를 먹고 발톱을 세웁니다.",
         "%{cat}%{은는} 접시를 지키듯 웅크립니다.",
@@ -66,7 +66,7 @@ class FeedCatCommand
         "%{cat}%{은는} 당신의 손짓보다 빠르게 움직였습니다.",
         "%{cat}%{은는} 고기를 먹고 문가를 바라봅니다.",
         "%{cat} 앞의 고기는 순식간에 사라졌습니다.",
-        "%{cat}%{은는} 입가를 핥습니다. 어쩐지 승리한 표정입니다.",
+        "%{cat}%{은는} 입가를 핥습니다. 어쩌면 승리한 표정입니다.",
         "%{cat}%{은는} 고기를 먹은 뒤 낮은 자세로 걷습니다.",
         "%{cat}%{은는} 장난감 쥐를 사냥하듯 덮칩니다.",
         "%{cat}%{은는} 고기 한 조각을 물고 어두운 구석으로 사라집니다.",
@@ -250,8 +250,11 @@ class FeedCatCommand
     }
   }
 
-  def initialize(sheet)
+  SHOP_USERS_SHEET = "사용자"
+
+  def initialize(sheet, shop_sheet_manager)
     @sheet = sheet
+    @shop_sheet_manager = shop_sheet_manager
   end
 
   def match?(content)
@@ -290,6 +293,10 @@ class FeedCatCommand
     @sheet.update_cat(account, changes)
     @sheet.update_colony(data[:colony], success ? 1 : 0)
     update_cat_stage(account)
+
+    if success
+      @shop_sheet_manager.delete_at(SHOP_USERS_SHEET, account, food)
+    end
 
     @sheet.log(account, "먹이/#{food}", success ? "성공" : "실패")
 
