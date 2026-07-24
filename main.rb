@@ -1,6 +1,5 @@
 $stdout.sync = true
 $stderr.sync = true
-
 require "dotenv/load"
 require "google/apis/sheets_v4"
 require "googleauth"
@@ -13,7 +12,6 @@ class Main
     "last_mention_id.txt",
     __dir__
   ).freeze
-
   SHEET_ID = ENV['GOOGLE_SHEET_ID']
 
   def initialize
@@ -21,10 +19,8 @@ class Main
       base_url: ENV.fetch("MASTODON_BASE_URL"),
       token:    ENV.fetch("MASTODON_ACCESS_TOKEN")
     )
-
     @sheet = SheetManager.new
-
-    # 상점봇 SheetManager 초기화
+    
     service = Google::Apis::SheetsV4::SheetsService.new
     service.client_options.application_name = 'ShopBot'
     service.authorization =
@@ -32,8 +28,8 @@ class Main
         json_key_io: File.open(ENV['GOOGLE_CREDENTIALS_PATH']),
         scope: Google::Apis::SheetsV4::AUTH_SPREADSHEETS
       )
-    @shop_sheet_manager = SheetManager.new
-
+    
+    @shop_sheet_manager = SheetManager.new(service, SHEET_ID)
     @parser = CommandParser.new(@sheet, @shop_sheet_manager)
   end
 
@@ -59,7 +55,6 @@ class Main
       since_id: last_id
     )
     return if mentions.empty?
-
     mentions.sort_by { |notification| notification['id'].to_i }.each do |notification|
       process_mention(notification)
       save_last_id(notification['id'])
