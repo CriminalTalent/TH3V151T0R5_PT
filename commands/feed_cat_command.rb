@@ -1,12 +1,15 @@
 require_relative "../utils/korean_particle"
+require_relative "../utils/cat_size"
 
 class FeedCatCommand
   include KoreanParticle
+  include CatSize
 
   FOOD_TABLE = {
     "생선" => {
       stat: :affection,
       colony: :affection,
+      min_stage: 0,
       success: [
         "%{cat}%{은는} 생선을 앞발로 톡톡 건드립니다. 곧 당신이 먹는 방식까지 따라 하네요.",
         "%{cat}%{은는} 생선 냄새를 맡자 꼬리를 세웁니다. 만족스러운 식사였던 모양입니다.",
@@ -56,8 +59,9 @@ class FeedCatCommand
     "고기" => {
       stat: :aggression,
       colony: :aggression,
+      min_stage: 0,
       success: [
-        "%{cat}%{은는} 고기를 물고 낮게 웁니다. 어쩐지 사냥법을 배운 것 같습니다.",
+        "%{cat}%{은는} 고기를 물고 낮게 웁니다. 어쩌면 사냥법을 배운 것 같습니다.",
         "%{cat}%{이가} 고기를 씹는 소리가 유난히 또렷합니다.",
         "%{cat}%{은는} 고기를 먹고 발톱을 세웁니다.",
         "%{cat}%{은는} 접시를 지키듯 웅크립니다.",
@@ -66,7 +70,7 @@ class FeedCatCommand
         "%{cat}%{은는} 당신의 손짓보다 빠르게 움직였습니다.",
         "%{cat}%{은는} 고기를 먹고 문가를 바라봅니다.",
         "%{cat} 앞의 고기는 순식간에 사라졌습니다.",
-        "%{cat}%{은는} 입가를 핥습니다. 어쩐지 승리한 표정입니다.",
+        "%{cat}%{은는} 입가를 핥습니다. 어쩌면 승리한 표정입니다.",
         "%{cat}%{은는} 고기를 먹은 뒤 낮은 자세로 걷습니다.",
         "%{cat}%{은는} 장난감 쥐를 사냥하듯 덮칩니다.",
         "%{cat}%{은는} 고기 한 조각을 물고 어두운 구석으로 사라집니다.",
@@ -105,6 +109,7 @@ class FeedCatCommand
     "우유" => {
       stat: :stability,
       colony: :stability,
+      min_stage: 0,
       success: [
         "%{cat}%{은는} 우유를 마신 뒤 둥글게 웅크립니다. 잠시 평온해 보입니다.",
         "%{cat} 앞의 우유 그릇이 조용히 비워졌습니다.",
@@ -154,6 +159,7 @@ class FeedCatCommand
     "별사탕" => {
       stat: :weirdness,
       colony: :weirdness,
+      min_stage: 0,
       success: [
         "%{cat}%{은는} 별사탕을 삼키자 눈동자에 작은 빛이 떠오릅니다.",
         "%{cat} 앞의 별사탕은 입 안에서 녹기도 전에 사라졌습니다.",
@@ -203,6 +209,7 @@ class FeedCatCommand
     "검은호수의무언가" => {
       stat: :unknown,
       colony: :unknown,
+      min_stage: 0,
       success: [
         "%{cat}%{은는} 그것을 삼킨 뒤, 당신이 모르는 목소리로 골골거립니다.",
         "%{cat}에게 그것은 먹이가 아니었지만, 맛있게 먹었습니다.",
@@ -247,11 +254,203 @@ class FeedCatCommand
         "%{cat} 앞의 그것은 아직 기다리고 있습니다.",
         "%{cat}%{은는} 실패를 따라 하지 않습니다. 이번에는 정말 실패입니다."
       ]
+    },
+
+    "말린나비" => {
+      stat: :weirdness,
+      colony: :weirdness,
+      min_stage: 1,
+      success: [
+        "%{cat}%{은는} 말린나비를 삼키고, 날갯짓 소리를 흉내냅니다.",
+        "%{cat}의 등에 잠깐 얇은 그림자가 겹칩니다.",
+        "%{cat}%{은는} 허공을 향해 앞발을 세 번 젓습니다.",
+        "%{cat}%{은는} 말린나비 가루를 뒤집어쓰고도 태연합니다.",
+        "%{cat} 주변에서 마른 잎이 부서지는 소리가 납니다.",
+        "%{cat}%{은는} 창문 쪽을 오래 바라봅니다.",
+        "%{cat}%{은는} 먹고 난 뒤 한 뼘쯤 가볍게 뜁니다.",
+        "%{cat}의 눈에 얇은 무늬가 스쳐 지나갑니다.",
+        "%{cat}%{은는} 당신의 손등에 앉았다가 곧 내려옵니다.",
+        "%{cat}%{은는} 소리 없이 방을 한 바퀴 돌았습니다."
+      ],
+      failure: [
+        "%{cat}%{은는} 말린나비를 앞발로 눌러 부숴버립니다.",
+        "%{cat} 앞의 말린나비가 바람도 없이 흔들립니다.",
+        "%{cat}%{은는} 날개 조각만 남기고 물러납니다.",
+        "%{cat}%{은는} 재채기 한 번에 먹이를 날려 보냈습니다.",
+        "%{cat}%{은는} 말린나비를 물었다가 곧 뱉습니다.",
+        "%{cat} 주변에 마른 가루만 흩어졌습니다.",
+        "%{cat}%{은는} 먹지 않고 그 위에 웅크립니다.",
+        "%{cat}의 귀가 들리지 않는 날갯짓을 따라 움직입니다.",
+        "%{cat} 앞의 말린나비가 한 조각 모자란 것 같습니다.",
+        "%{cat}%{은는} 창문을 보며 아무것도 하지 않습니다."
+      ]
+    },
+
+    "숲의열매" => {
+      stat: :stability,
+      colony: :stability,
+      min_stage: 1,
+      success: [
+        "%{cat}%{은는} 숲의열매를 씹고 천천히 눈을 감습니다.",
+        "%{cat} 주변에 젖은 흙과 풀 냄새가 퍼집니다.",
+        "%{cat}%{은는} 열매를 굴리다 결국 다 먹었습니다.",
+        "%{cat}%{은는} 숨소리가 한결 고르게 바뀌었습니다.",
+        "%{cat}%{은는} 당신의 손바닥에 이마를 댑니다.",
+        "%{cat}%{은는} 열매를 먹고 창가 볕에 눕습니다.",
+        "%{cat}의 꼬리가 규칙적으로 흔들립니다.",
+        "%{cat}%{은는} 오늘은 아무것도 따라 하지 않고 쉽니다.",
+        "%{cat}%{은는} 씨앗만 남기고 자리를 정리합니다.",
+        "%{cat}%{은는} 조용히 당신 곁으로 자리를 옮깁니다."
+      ],
+      failure: [
+        "%{cat}에게는 숲의열매가 너무 떫었던 모양입니다.",
+        "%{cat}%{은는} 열매를 굴리다 침대 밑으로 보냈습니다.",
+        "%{cat}%{은는} 냄새만 맡고 등을 돌립니다.",
+        "%{cat} 앞의 열매가 반으로 갈라진 채 남았습니다.",
+        "%{cat}%{은는} 열매를 밟고 미끄러졌습니다.",
+        "%{cat}%{은는} 씨앗만 골라내고 나머지는 두었습니다.",
+        "%{cat}%{은는} 열매 앞에서 오래 서성입니다.",
+        "%{cat}의 입가에 붉은 자국만 남았습니다.",
+        "%{cat}%{은는} 먹는 대신 열매를 숨깁니다.",
+        "%{cat}%{은는} 당신의 지친 얼굴을 따라 합니다."
+      ]
+    },
+
+    "붉은젤리" => {
+      stat: :affection,
+      colony: :affection,
+      min_stage: 2,
+      success: [
+        "%{cat}%{은는} 붉은젤리를 삼키고 당신의 이름을 부르듯 웁니다.",
+        "%{cat}%{은는} 먹고 난 뒤 당신의 어깨에 머리를 기댑니다.",
+        "%{cat}%{은는} 젤리를 반으로 나눠 당신 쪽으로 밀어줍니다.",
+        "%{cat}%{은는} 당신의 손을 오래 붙잡고 놓지 않습니다.",
+        "%{cat}의 골골거림이 방 전체에 울립니다.",
+        "%{cat}%{은는} 당신이 나가려 하자 문 앞을 막습니다.",
+        "%{cat}%{은는} 젤리를 먹고 당신의 웃음을 정확히 따라 합니다.",
+        "%{cat}%{은는} 당신 무릎에 앉기에는 이미 조금 큽니다.",
+        "%{cat}%{은는} 빈 접시를 당신 앞으로 밀어놓습니다.",
+        "%{cat}%{은는} 당신의 손끝을 붉은 혀로 핥습니다."
+      ],
+      failure: [
+        "%{cat}%{은는} 붉은젤리를 손에서 빼앗듯 가져갔지만 먹지는 않았습니다.",
+        "%{cat} 앞의 젤리가 접시에 눌어붙었습니다.",
+        "%{cat}%{은는} 젤리를 물고 당신에게서 멀어집니다.",
+        "%{cat}%{은는} 젤리를 밟고 발자국을 남겼습니다.",
+        "%{cat}%{은는} 당신이 아닌 쪽을 향해 웁니다.",
+        "%{cat} 주변에 붉은 자국이 여럿 생겼습니다.",
+        "%{cat}%{은는} 젤리를 거부하고 당신의 표정을 살핍니다.",
+        "%{cat}%{은는} 젤리를 앞발로 눌러 터뜨립니다.",
+        "%{cat} 앞의 젤리는 남았고, %{cat}%{은는} 등을 보입니다.",
+        "%{cat}%{은는} 오늘은 곁을 내주지 않습니다."
+      ]
+    },
+
+    "뼛조각" => {
+      stat: :aggression,
+      colony: :aggression,
+      min_stage: 2,
+      success: [
+        "%{cat}%{은는} 뼛조각을 어금니로 부숩니다. 소리가 방을 울립니다.",
+        "%{cat}%{은는} 먹이를 물고 당신 앞을 천천히 지나갑니다.",
+        "%{cat}%{은는} 뼛조각을 다 삼키고 문 쪽을 노려봅니다.",
+        "%{cat}의 발톱 자국이 바닥에 길게 남았습니다.",
+        "%{cat}%{은는} 낮게 웅크렸다가 단숨에 일어섭니다.",
+        "%{cat}%{은는} 뼛조각을 숨긴 자리를 기억해 둡니다.",
+        "%{cat}%{은는} 먹이를 먹은 뒤 당신 뒤를 지킵니다.",
+        "%{cat}의 그림자가 문틀보다 커 보입니다.",
+        "%{cat}%{은는} 남은 조각을 앞발로 밀어 정렬합니다.",
+        "%{cat}%{은는} 만족한 듯 짧게 으르렁댑니다."
+      ],
+      failure: [
+        "%{cat}%{은는} 뼛조각을 물고 놓지 않습니다. 삼키지도 않습니다.",
+        "%{cat}%{은는} 먹이를 벽 쪽으로 던집니다.",
+        "%{cat} 앞의 뼛조각에 이빨 자국만 늘었습니다.",
+        "%{cat}%{은는} 접시를 밀어 넘어뜨립니다.",
+        "%{cat}%{은는} 당신의 손이 가까워지자 하악질합니다.",
+        "%{cat}%{은는} 먹이를 지키느라 먹지 못했습니다.",
+        "%{cat} 주변에 부서진 조각이 흩어졌습니다.",
+        "%{cat}%{은는} 어두운 구석에서 오래 나오지 않습니다.",
+        "%{cat} 앞의 뼛조각이 조금 젖어 있습니다.",
+        "%{cat}%{은는} 낮은 소리만 남기고 물러섰습니다."
+      ]
+    },
+
+    "이름없는것" => {
+      stat: :unknown,
+      colony: :unknown,
+      min_stage: 3,
+      success: [
+        "%{cat}%{은는} 그것을 삼키고, 당신의 이름을 정확히 발음합니다.",
+        "%{cat}%{은는} 먹이를 삼킨 자리에 아무 흔적도 남기지 않습니다.",
+        "%{cat}%{은는} 방문을 열고 들어와 접시 앞에 앉습니다.",
+        "%{cat}%{은는} 당신이 하지 않은 말을 따라 합니다.",
+        "%{cat}의 그림자가 당신의 그림자와 겹쳐 한동안 떨어지지 않습니다.",
+        "%{cat}%{은는} 눈을 감은 채로 당신을 정확히 봅니다.",
+        "%{cat}%{은는} 먹이를 삼킨 뒤 한 뼘 더 커진 듯합니다.",
+        "%{cat}%{은는} 당신의 어제 목소리로 웁니다.",
+        "%{cat}%{은는} 접시를 치우고 자리를 정돈합니다.",
+        "%{cat}%{은는} 이제 기다리는 법을 알고 있습니다."
+      ],
+      failure: [
+        "%{cat}%{은는} 그것을 삼키지 않았습니다. 그런데 접시는 비었습니다.",
+        "%{cat} 앞의 먹이가 스스로 자리를 옮깁니다.",
+        "%{cat}%{은는} 처음으로 당신을 향해 문을 닫습니다.",
+        "%{cat}%{은는} 먹이 대신 방 안의 소리를 삼킨 것 같습니다.",
+        "%{cat}의 눈이 당신을 지나쳐 뒤쪽을 봅니다.",
+        "%{cat}%{은는} 아무 반응도 하지 않습니다. 그것이 반응입니다.",
+        "%{cat} 앞의 그것이 이름을 부른 것 같습니다.",
+        "%{cat}%{은는} 먹이를 밀어내고 당신의 자리를 봅니다.",
+        "%{cat} 주변의 공기가 한 겹 무거워졌습니다.",
+        "%{cat}%{은는} 오늘은 아무것도 따라 하지 않기로 한 듯합니다."
+      ]
     }
   }
 
-  def initialize(sheet)
+  STAGE_REACTIONS = {
+    "흉내내는 새끼" => {
+      success: [
+        "%{cat}%{은는} 다 먹은 뒤 당신의 앉는 자세를 그대로 따라 합니다.",
+        "%{cat}%{은는} 접시를 밀어 제자리에 놓습니다. 배운 적 없는 행동입니다.",
+        "%{cat}%{은는} 식사 후 당신의 손짓을 한 박자 늦게 반복합니다."
+      ],
+      failure: [
+        "%{cat}%{은는} 먹지 않고 당신이 먹는 흉내만 냅니다.",
+        "%{cat}%{은는} 접시를 당신 쪽으로 밀어놓고 기다립니다.",
+        "%{cat}%{은는} 당신의 실망한 숨소리를 그대로 냅니다."
+      ]
+    },
+    "따라 걷는 것" => {
+      success: [
+        "%{cat}%{은는} 식사를 마치고 당신의 보폭에 맞춰 걷습니다.",
+        "%{cat}%{은는} 다 먹은 뒤 문 앞까지 앞서 걸어갑니다.",
+        "%{cat}%{은는} 이제 접시에 고개를 숙일 필요가 없습니다."
+      ],
+      failure: [
+        "%{cat}%{은는} 접시를 지나쳐 당신을 따라 걷기만 합니다.",
+        "%{cat}%{은는} 먹이 대신 당신의 발자국을 밟습니다.",
+        "%{cat}%{은는} 방을 한 바퀴 돌고 다시 접시 앞에 섭니다."
+      ]
+    },
+    "방문을 배운 것" => {
+      success: [
+        "%{cat}%{은는} 문을 열고 들어와 식사를 마친 뒤 다시 문을 닫습니다.",
+        "%{cat}%{은는} 당신보다 먼저 접시를 준비해 두었습니다.",
+        "%{cat}%{은는} 식사 후 당신의 자리에 앉아 당신을 봅니다."
+      ],
+      failure: [
+        "%{cat}%{은는} 문 앞에서 접시를 보기만 합니다.",
+        "%{cat}%{은는} 오늘은 방에 들어오지 않고 문틈에서 지켜봅니다.",
+        "%{cat}%{은는} 먹이를 두고 당신의 이름만 한 번 부릅니다."
+      ]
+    }
+  }
+
+  SHOP_USERS_SHEET = "사용자"
+
+  def initialize(sheet, shop_sheet_manager)
     @sheet = sheet
+    @shop_sheet_manager = shop_sheet_manager
   end
 
   def match?(content)
@@ -267,14 +466,19 @@ class FeedCatCommand
     return "그 먹이는 아직 준비되어 있지 않습니다." unless data
 
     cat = @sheet.cat(account)
+    return "먼저 `[카피캣등록/이름]`을 해주세요." unless cat
+
     cat_name = cat[:name]
+    stage = cat[:stage].to_s.empty? ? STAGES[0] : cat[:stage]
+    idx = stage_index(stage)
 
     if cat[:last_feed] == @sheet.today
       return "오늘은 이미 #{cat_name}에게 밥을 주었습니다. 너무 많이 먹이면 따라 하는 것도 무거워집니다."
     end
 
     success = rand < feed_success_rate(cat, food)
-    template = success ? data[:success].sample : data[:failure].sample
+    pool = reaction_pool(data, idx, success)
+    template = pool.sample
     reaction = with_particles(template, cat_name)
 
     changes = {
@@ -291,7 +495,14 @@ class FeedCatCommand
     @sheet.update_colony(data[:colony], success ? 1 : 0)
     update_cat_stage(account)
 
+    @sheet.remove_item(account, food)
+
     @sheet.log(account, "먹이/#{food}", success ? "성공" : "실패")
+
+    new_cat = @sheet.cat(account)
+    new_stage = new_cat[:stage].to_s.empty? ? STAGES[0] : new_cat[:stage]
+
+    grew = (stage_index(new_stage) > idx)
 
     <<~TEXT.strip
       #{cat_name}에게 #{food}을/를 주었습니다.
@@ -300,10 +511,21 @@ class FeedCatCommand
 
       결과: #{success ? "성공" : "실패"}
       #{success ? "친밀도 +1 / #{cat_stat_label(data[:stat])} +1" : "허기 +1"}
+      크기: #{size_text(new_stage)}#{grew ? "\n#{cat_name}%{은는} 한 단계 자랐습니다: #{new_stage}".sub("%{은는}", "은") : ""}
     TEXT
   end
 
   private
+
+  def reaction_pool(data, idx, success)
+    key = success ? :success : :failure
+    pool = data[key].dup
+    (1..idx).each do |i|
+      extra = STAGE_REACTIONS[STAGES[i]]
+      pool += extra[key] if extra
+    end
+    pool
+  end
 
   def feed_success_rate(cat, food)
     base = 0.75

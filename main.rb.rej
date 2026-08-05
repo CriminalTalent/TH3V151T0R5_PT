@@ -1,0 +1,11 @@
+--- main.rb
++++ main.rb
+@@ -29,7 +29,7 @@ class Main
+       scope: Google::Apis::SheetsV4::AUTH_SPREADSHEETS
+     )
+-    @shop_sheet_manager = SheetManager.new
++    @shop_sheet_manager = SheetManager.new(service, SHEET_ID)
+ 
+     @parser = CommandParser.new(@sheet, @shop_sheet_manager)
+   end
+ 

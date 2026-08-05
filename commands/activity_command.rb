@@ -459,7 +459,7 @@ class ActivityCommand
 
   def build_response(message, attempts, avg_perf, final_result, credit, stat_gains, status_id)
     label = result_label(final_result)
-    stat_text = ""
+    stat_text = stat_gains.to_a.empty? ? "" : "\n스탯 #{stat_gains.join(' / ')}"
 
     lines = []
     lines << message
@@ -556,6 +556,16 @@ class ActivityCommand
         sign = applied.positive? ? "+" : ""
         gains << "#{stat_name} #{sign}#{applied}"
         puts "[활동 스탯 적용] #{account.inspect}/#{stat_name}/#{sign}#{applied}, 반환=#{update_result.inspect}"
+
+        if stat_name == "건강"
+          max_result = @sheet.add_stat(account, "최대건강", applied)
+          if max_result == false
+            puts "[활동 스탯 오류] 최대건강 갱신 실패: #{account.inspect}/#{applied}"
+          else
+            gains << "최대건강 #{sign}#{applied}"
+            puts "[활동 스탯 적용] #{account.inspect}/최대건강/#{sign}#{applied}, 반환=#{max_result.inspect}"
+          end
+        end
       rescue StandardError => e
         puts "[활동 스탯 예외] #{e.class}: #{e.message}"
         puts e.backtrace.first(10).join("\n")

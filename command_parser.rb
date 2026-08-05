@@ -20,13 +20,13 @@ class CommandParser
       AttendanceCommand.new(sheet),
       ActivityCommand.new(sheet),
       CatRegisterCommand.new(sheet),
-      FeedCatCommand.new(sheet),
+            FeedCatCommand.new(sheet, @shop_sheet_manager),
       CatStatusCommand.new(sheet),
       ObserveCatCommand.new(sheet),
       ColonyCommand.new(sheet),
       ProgressCommand.new(sheet),
       TootSettlementCommand.new(sheet),
-      HouseScoreCommand.new(sheet)
+      HouseScoreCommand.new(sheet, @shop_sheet_manager)
     ]
   end
 

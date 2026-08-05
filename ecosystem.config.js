@@ -4,6 +4,7 @@ module.exports = {
       name: "pt_bot",
       script: "bundle",
       args: "exec ruby main.rb",
+      interpreter: "none",
       cwd: "/root/TH3V151T0R5_PT"
     }
   ]

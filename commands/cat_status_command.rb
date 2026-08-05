@@ -1,4 +1,8 @@
+require_relative "../utils/cat_size"
+
 class CatStatusCommand
+  include CatSize
+
   def initialize(sheet)
     @sheet = sheet
   end
@@ -11,11 +15,15 @@ class CatStatusCommand
     return "먼저 `[등록/캐릭터명]`을 해주세요." unless @sheet.registered?(account)
 
     cat = @sheet.cat(account)
+    return "먼저 `[카피캣등록/이름]`을 해주세요." unless cat
+
+    stage = cat[:stage].to_s.empty? ? STAGES[0] : cat[:stage]
 
     <<~TEXT.strip
       #{cat[:name]}
 
-      단계: #{cat[:stage]}
+      단계: #{stage}
+      크기: #{size_text(stage)}
       친밀도: #{cat[:intimacy]}
       허기: #{cat[:hunger]}
 

@@ -1,42 +1,29 @@
 $stdout.sync = true
 $stderr.sync = true
-
 require "dotenv/load"
 require "google/apis/sheets_v4"
 require "googleauth"
 require_relative "./mastodon_client"
 require_relative "./sheet_manager"
 require_relative "./command_parser"
-
 class Main
   LAST_ID_FILE = File.expand_path(
     "last_mention_id.txt",
     __dir__
   ).freeze
 
-  SHEET_ID = ENV['GOOGLE_SHEET_ID']
+  ALLOWED_VISIBILITY = %w[public unlisted private direct].freeze
+  DEFAULT_VISIBILITY = "unlisted".freeze
 
   def initialize
     @mastodon = MastodonClient.new(
       base_url: ENV.fetch("MASTODON_BASE_URL"),
       token:    ENV.fetch("MASTODON_ACCESS_TOKEN")
     )
-
     @sheet = SheetManager.new
-
-    # 상점봇 SheetManager 초기화
-    service = Google::Apis::SheetsV4::SheetsService.new
-    service.client_options.application_name = 'ShopBot'
-    service.authorization =
-      Google::Auth::ServiceAccountCredentials.make_creds(
-        json_key_io: File.open(ENV['GOOGLE_CREDENTIALS_PATH']),
-        scope: Google::Apis::SheetsV4::AUTH_SPREADSHEETS
-      )
     @shop_sheet_manager = SheetManager.new
-
     @parser = CommandParser.new(@sheet, @shop_sheet_manager)
   end
-
   def run
     puts "[VISITORS_CARE] bot started."
     puts "[LAST ID FILE] #{LAST_ID_FILE}"
@@ -50,44 +37,48 @@ class Main
       sleep 15
     end
   end
-
   private
-
   def process_mentions
     last_id = read_last_id
     mentions = @mastodon.mentions(
       since_id: last_id
     )
     return if mentions.empty?
-
     mentions.sort_by { |notification| notification['id'].to_i }.each do |notification|
       process_mention(notification)
       save_last_id(notification['id'])
     end
   end
-
   def process_mention(notification)
     content = notification.dig('status', 'content') || ''
     account = notification.dig('account', 'acct') || ''
     status_id = notification.dig('status', 'id')
-    
     message = @parser.call(content: content, account: account, status_id: status_id)
-    
     if message && !message.to_s.strip.empty?
-      @mastodon.post_status("@#{account} #{message}", reply_to_id: status_id, visibility: 'unlisted')
+      @mastodon.post_status(
+        "@#{account} #{message}",
+        reply_to_id: status_id,
+        visibility: reply_visibility(notification)
+      )
     end
   rescue => e
     puts "[process_mention 오류] #{e.message}"
+  end
+
+  def reply_visibility(notification)
+    incoming = notification.dig('status', 'visibility').to_s
+    return DEFAULT_VISIBILITY unless ALLOWED_VISIBILITY.include?(incoming)
+    return "direct" if incoming == "direct"
+    return "private" if incoming == "private"
+    DEFAULT_VISIBILITY
   end
 
   def read_last_id
     return nil unless File.exist?(LAST_ID_FILE)
     File.read(LAST_ID_FILE).strip.to_i
   end
-
   def save_last_id(id)
     File.write(LAST_ID_FILE, id.to_s)
   end
 end
-
 Main.new.run
