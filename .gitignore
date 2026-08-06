@@ -14,3 +14,7 @@ path
 *_broken
 *_broken_*
 *_error_*.backup
+*.bak
+*.bak_*
+*.tmp
+*.before_*
