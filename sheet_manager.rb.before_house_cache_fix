@@ -766,7 +766,7 @@ class SheetManager
   # ─────────────────────────────────────────────
   def add_house_score(house, delta)
     with_retry("기숙사 점수 반영 #{house}") do
-      ws = fresh_worksheet(HOUSE_SHEET)
+      ws = worksheet(HOUSE_SHEET)
       total = nil
       (2..ws.num_rows).each do |row|
         next unless ws[row, 1].to_s.strip == house.to_s.strip
@@ -775,14 +775,13 @@ class SheetManager
         save!(ws)
         break
       end
-      @worksheet_cache.delete(HOUSE_SHEET)
       total
     end
   end
 
   def add_house_score_all(delta)
     with_retry("기숙사 점수 전체 반영") do
-      ws = fresh_worksheet(HOUSE_SHEET)
+      ws = worksheet(HOUSE_SHEET)
       results = []
       (2..ws.num_rows).each do |row|
         name = ws[row, 1].to_s.strip
@@ -793,7 +792,6 @@ class SheetManager
       end
       next nil if results.empty?
       save!(ws)
-      @worksheet_cache.delete(HOUSE_SHEET)
       results
     end
   end

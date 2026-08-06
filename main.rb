@@ -1,8 +1,6 @@
 $stdout.sync = true
 $stderr.sync = true
 require "dotenv/load"
-require "google/apis/sheets_v4"
-require "googleauth"
 require_relative "./mastodon_client"
 require_relative "./sheet_manager"
 require_relative "./command_parser"
@@ -11,17 +9,15 @@ class Main
     "last_mention_id.txt",
     __dir__
   ).freeze
-
   ALLOWED_VISIBILITY = %w[public unlisted private direct].freeze
   DEFAULT_VISIBILITY = "unlisted".freeze
-
   def initialize
     @mastodon = MastodonClient.new(
       base_url: ENV.fetch("MASTODON_BASE_URL"),
       token:    ENV.fetch("MASTODON_ACCESS_TOKEN")
     )
     @sheet = SheetManager.new
-    @shop_sheet_manager = SheetManager.new
+    @shop_sheet_manager = @sheet
     @parser = CommandParser.new(@sheet, @shop_sheet_manager)
   end
   def run
@@ -64,7 +60,6 @@ class Main
   rescue => e
     puts "[process_mention 오류] #{e.message}"
   end
-
   def reply_visibility(notification)
     incoming = notification.dig('status', 'visibility').to_s
     return DEFAULT_VISIBILITY unless ALLOWED_VISIBILITY.include?(incoming)
@@ -72,7 +67,6 @@ class Main
     return "private" if incoming == "private"
     DEFAULT_VISIBILITY
   end
-
   def read_last_id
     return nil unless File.exist?(LAST_ID_FILE)
     File.read(LAST_ID_FILE).strip.to_i
