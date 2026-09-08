@@ -1,7 +1,9 @@
 require_relative "../utils/korean_particle"
+require_relative "../utils/cat_size"
 
 class ObserveCatCommand
   include KoreanParticle
+  include CatSize
 
   OBSERVATION_TEXTS = {
     affection: [
@@ -159,10 +161,17 @@ class ObserveCatCommand
     @sheet.update_cat(account, last_reaction: text)
     @sheet.log(account, "관찰", dominant.to_s)
 
+    role_line = ""
+    if cat[:stage].to_s == "자리를 잡은 것" && dominant != :none
+      role = ROLE_LABELS[dominant]
+      role_template = "%{cat}%{은는} 이제 [#{role}]으로서의 면모를 보이고 있습니다."
+      role_line = "\n\n" + with_particles(role_template, cat_name)
+    end
+
     <<~TEXT.strip
       #{cat_name}#{eul_reul(cat_name)} 관찰합니다.
 
-      #{text}
+      #{text}#{role_line}
     TEXT
   end
 

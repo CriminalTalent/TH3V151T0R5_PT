@@ -110,7 +110,18 @@ class SheetManager
   end
 
   def stat_row(account)
-    cached_row(:stat, account) { find_row(STAT_SHEET, 1, account) }
+    normalized = normalize_account(account)
+    ws = fresh_worksheet(STAT_SHEET)
+    row = find_row_in_worksheet(ws, 1, normalized)
+    @worksheet_cache[STAT_SHEET] = ws
+
+    if row
+      @row_cache[[:stat, normalized]] = row
+    else
+      @row_cache.delete([:stat, normalized])
+    end
+
+    row
   end
 
   def registered?(account)
@@ -208,6 +219,34 @@ class SheetManager
     ws = worksheet(USER_SHEET)
     ws[row, 3] = (ws[row, 3].to_i + amount.to_i).to_s
     save!(ws)
+  end
+
+  # 카피캣 특훈 일일 횟수 관리. P열(16, 기존 미사용 "클럽 마지막 날짜" 컬럼)에
+  # "YYYY-MM-DD:N" 형식으로 저장한다. 날짜가 오늘과 다르면 0회로 취급한다.
+  def train_count_today(account)
+    row = user_row(account)
+    return 0 unless row
+    ws = fresh_worksheet(USER_SHEET)
+    raw = ws[row, 16].to_s.strip
+    return 0 if raw.empty?
+
+    date_part, count_part = raw.split(':', 2)
+    return 0 unless date_part == today
+
+    count_part.to_i
+  end
+
+  def increment_train_count!(account)
+    row = user_row(account)
+    return unless row
+    ws = fresh_worksheet(USER_SHEET)
+    raw = ws[row, 16].to_s.strip
+    date_part, count_part = raw.split(':', 2)
+
+    current = (date_part == today) ? count_part.to_i : 0
+    ws[row, 16] = "#{today}:#{current + 1}"
+    save!(ws)
+    @worksheet_cache.delete(USER_SHEET)
   end
 
   def get_toot_baseline(account)
@@ -584,7 +623,8 @@ class SheetManager
       unknown:       ws[row, 10].to_i,
       last_feed:     ws[row, 11].to_s,
       stage:         ws[row, 12].to_s,
-      last_reaction: ws[row, 13].to_s
+      last_reaction: ws[row, 13].to_s,
+      custom_appearance: ws[row, 14].to_s
     }
   end
 
@@ -614,13 +654,14 @@ class SheetManager
       unknown:       10,
       last_feed:     11,
       stage:         12,
-      last_reaction: 13
+      last_reaction: 13,
+      custom_appearance: 14
     }
 
     changes.each do |key, value|
       col = column_map[key]
       next unless col
-      if [:last_feed, :stage, :last_reaction].include?(key)
+      if [:last_feed, :stage, :last_reaction, :custom_appearance].include?(key)
         ws[row, col] = value.to_s
       else
         new_value = ws[row, col].to_i + value.to_i
@@ -840,7 +881,7 @@ class SheetManager
 
   def log_house_score(account, house, delta, total, source)
     with_retry("기숙사 로그 기록 #{house}") do
-      ws = worksheet(HOUSE_LOG_SHEET)
+      ws = fresh_worksheet(HOUSE_LOG_SHEET)
       row = ws.num_rows + 1
       ws[row, 1] = now_string
       ws[row, 2] = account.to_s
@@ -849,6 +890,7 @@ class SheetManager
       ws[row, 5] = total.to_s
       ws[row, 6] = source.to_s
       save!(ws)
+    @worksheet_cache.delete(HOUSE_LOG_SHEET)
     end
   rescue
     nil

@@ -18,10 +18,12 @@ class CatStatusCommand
     return "먼저 `[카피캣등록/이름]`을 해주세요." unless cat
 
     stage = cat[:stage].to_s.empty? ? STAGES[0] : cat[:stage]
+    appearance = cat[:custom_appearance].to_s.strip
+    appearance_block = appearance.empty? ? "" : "\n외형: #{appearance}\n"
 
     <<~TEXT.strip
       #{cat[:name]}
-
+      #{appearance_block}
       단계: #{stage}
       크기: #{size_text(stage)}
       친밀도: #{cat[:intimacy]}

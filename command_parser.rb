@@ -4,6 +4,9 @@ require_relative "./commands/attendance_command"
 require_relative "./commands/activity_command"
 require_relative "./commands/cat_register_command"
 require_relative "./commands/feed_cat_command"
+require_relative "./commands/train_cat_command"
+require_relative "./commands/cat_rename_command"
+require_relative "./commands/cat_appearance_command"
 require_relative "./commands/cat_status_command"
 require_relative "./commands/observe_cat_command"
 require_relative "./commands/colony_command"
@@ -21,6 +24,9 @@ class CommandParser
       ActivityCommand.new(sheet),
       CatRegisterCommand.new(sheet),
             FeedCatCommand.new(sheet, @shop_sheet_manager),
+            TrainCatCommand.new(sheet, @shop_sheet_manager),
+            CatRenameCommand.new(sheet, @shop_sheet_manager),
+            CatAppearanceCommand.new(sheet, @shop_sheet_manager),
       CatStatusCommand.new(sheet),
       ObserveCatCommand.new(sheet),
       ColonyCommand.new(sheet),
