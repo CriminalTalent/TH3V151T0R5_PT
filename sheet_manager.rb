@@ -645,6 +645,7 @@ class SheetManager
     @row_cache[[:cat, normalized]] = row
 
     column_map = {
+      name:          3,
       intimacy:      4,
       hunger:        5,
       affection:     6,
@@ -661,7 +662,7 @@ class SheetManager
     changes.each do |key, value|
       col = column_map[key]
       next unless col
-      if [:last_feed, :stage, :last_reaction, :custom_appearance].include?(key)
+      if [:name, :last_feed, :stage, :last_reaction, :custom_appearance].include?(key)
         ws[row, col] = value.to_s
       else
         new_value = ws[row, col].to_i + value.to_i
