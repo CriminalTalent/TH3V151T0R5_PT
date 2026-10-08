@@ -535,7 +535,7 @@ class SheetManager
   # ─────────────────────────────────────────────
   def find_activity(kind, name)
     with_retry("활동 조회 #{kind}/#{name}") do
-      ws = worksheet(ACTIVITY_SHEET)
+      ws = fresh_worksheet(ACTIVITY_SHEET)
       result = nil
       (2..ws.num_rows).each do |row|
         next unless ws[row, 1].to_s.strip == kind
