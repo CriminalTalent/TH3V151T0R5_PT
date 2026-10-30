@@ -207,18 +207,41 @@ class SheetManager
     worksheet(USER_SHEET)[row, 2]
   end
 
+  # 크레딧 칸 값을 숫자만 남겨 읽는다. (텍스트/따옴표가 섞여도 0으로 읽히지 않게)
+  def credit_value(ws, row)
+    ws[row, 3].to_s.gsub(/[^\-0-9]/, '').to_i
+  end
+
+  # 크레딧(C열)을 RAW 문자열로 직접 쓴다. 시트가 약 15자리까지만 정확히 저장하는
+  # 숫자 형식으로 반올림하는 것을 피하기 위함이다.
+  def write_credit_raw(row, value)
+    range = "'#{USER_SHEET}'!C#{row}"
+    body = Google::Apis::SheetsV4::ValueRange.new(values: [[value.to_i.to_s]])
+    with_retry("크레딧 쓰기(RAW) #{range}") do
+      @spreadsheet.session.sheets_service.update_spreadsheet_value(
+        @spreadsheet.id, range, body, value_input_option: 'RAW'
+      )
+    end
+    true
+  rescue => e
+    warn "[크레딧 RAW 쓰기 오류] #{range}: #{e.class} - #{e.message}"
+    false
+  end
+
   def get_credit(account)
     row = user_row(account)
     return 0 unless row
-    worksheet(USER_SHEET)[row, 3].to_i
+    credit_value(worksheet(USER_SHEET), row)
   end
 
   def add_credit(account, amount)
     row = user_row(account)
     return unless row
-    ws = worksheet(USER_SHEET)
-    ws[row, 3] = (ws[row, 3].to_i + amount.to_i).to_s
-    save!(ws)
+    ws = fresh_worksheet(USER_SHEET)
+    current = credit_value(ws, row)
+    ok = write_credit_raw(row, current + amount.to_i)
+    @worksheet_cache.delete(USER_SHEET)
+    ok
   end
 
   # 카피캣 특훈 일일 횟수 관리. P열(16, 기존 미사용 "클럽 마지막 날짜" 컬럼)에
@@ -283,7 +306,7 @@ class SheetManager
       return false
     end
 
-    current_credit   = ws[row, 3].to_i
+    current_credit   = credit_value(ws, row)
     current_baseline = ws[row, 10].to_i
     expected         = expected_baseline.to_i
     target_baseline  = new_baseline.to_i
@@ -309,9 +332,17 @@ class SheetManager
 
     target_credit = current_credit + reward_amount
 
-    ws[row, 3]  = target_credit.to_s
+    # 기준 칸(J열)을 먼저 쓰고 크레딧(C열)을 RAW로 쓴다. 크레딧 쓰기가 실패하면 기준을 되돌려
+    # 같은 정산이 다시 시도될 수 있게 한다. (중복 지급 방지: 기준이 먼저 올라가 있으면 재시도가 막힌다)
     ws[row, 10] = target_baseline.to_s
     save!(ws)
+    credit_ok = write_credit_raw(row, target_credit)
+    unless credit_ok
+      ws[row, 10] = current_baseline.to_s
+      save!(ws)
+      warn "[툿정산 중단] status_id=#{status_id} account=#{account} 크레딧 쓰기 실패 — 기준 복구"
+      return false
+    end
 
     # 저장 결과를 새 worksheet 객체로 다시 읽어서 검증한다.
     verify_ws = fresh_worksheet(USER_SHEET)
@@ -322,7 +353,7 @@ class SheetManager
       return false
     end
 
-    saved_credit   = verify_ws[verify_row, 3].to_i
+    saved_credit   = credit_value(verify_ws, verify_row)
     saved_baseline = verify_ws[verify_row, 10].to_i
     success = saved_credit == target_credit && saved_baseline == target_baseline
 
